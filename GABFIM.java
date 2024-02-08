@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package krimp;
 
 import java.io.BufferedReader;
@@ -17,6 +13,7 @@ import java.util.Set;
 /**
  *
  * @author Zohaib
+ * Genetic Algorithm for Efficient Descriptive Pattern Mining
  */
 public class GABFIM {
      public static void main(String[] args) throws IOException {
@@ -30,7 +27,7 @@ public class GABFIM {
        for (int i=0; i<randPatterns; i++)
            randomPairsGA.add(i);
         Collections.shuffle(randomPairsGA);
-        String inpp = "accident.txt";
+        String inpp = "penDigits.txt";
         ArrayList<Set<Integer>> sequence = new ArrayList<>();
         sequence = readItemsetsFromFile(inpp);
 
@@ -74,31 +71,31 @@ sizeOfOriginalDB = sizeInBits(sequence);
         }
 //        System.out.println(randomPairs.size());
 
-        ArrayList<Set<Integer>> finalResult = new ArrayList<>();
         ArrayList<Set<Integer>> CT = new ArrayList<>();
         CT = generateNPatterns(population, randPatterns, longestItemSet);
-//        System.out.println(CT);
+        
+        //length of code table
+        int CTL = (int) CTLength(CT);
+
         for (int j=0; j<randPatterns;j=j+2){
             for (int k = 1; k <= numberOfIterations; k++) {
             int P1Index = randomPairsGA.get(j);
             int P2Index = randomPairsGA.get(j+1);
             Set<Integer> P1Sol = CT.get(P1Index);
             Set<Integer> P2Sol = CT.get(P2Index);
-
-//            System.out.println(nRandomPatternsGenerated.get(P1Index));
-//            System.out.println(nRandomPatternsGenerated.get(P2Index));
-//coverFunction(ArrayList<Set<Integer>> sequence, Set<Integer> C1, Set<Integer> C2, int sizeOfOriginalDB) {
+            
+            //crossover operator
             float CRB = coverFunction(sequence, P1Sol,P2Sol, sizeOfOriginalDB );
-//            System.out.println(CRB);
             Set<Integer>[] crossoverResult = newCrossOver(sequence, CT.get(P1Index), CT.get(P2Index));
             Set<Integer> C1Sol = crossoverResult[0];
             Set<Integer> C2Sol = crossoverResult[1];
             
-//            public static Set<Integer> mutate(Set<Integer> C, Set<Integer> allItems) {
+            //mutation operator
             C1Sol = mutate(C1Sol, population);
             C2Sol = mutate(C2Sol, population);
             float CRA = coverFunction(sequence, C1Sol,C2Sol, sizeOfOriginalDB );
-//            System.out.println("CR After : "+CRA);
+            
+            //updating solution based on compression value
             if (CRA < CRB)
             {
                 CT.set(P1Index, C1Sol);
@@ -107,8 +104,9 @@ sizeOfOriginalDB = sizeInBits(sequence);
         }
             
         }
-               getFinalCompression(sequence,CT,sizeOfOriginalDB  );
- long endTimeLocal = System.currentTimeMillis();
+            //get final result
+            getFinalCompression(sequence,CT,sizeOfOriginalDB, CTL );
+            long endTimeLocal = System.currentTimeMillis();
 
             float localDuration = (endTimeLocal - startTimeLocal) / 1000F;
             System.out.println(":time taken: " + localDuration + " :seconds");
@@ -126,7 +124,7 @@ sizeOfOriginalDB = sizeInBits(sequence);
                     cutOffPoint = 2;
                 } else {
                     Random random = new Random();
-cutOffPoint = Math.max(2, random.nextInt(Math.max(1, minLength - 1)) + 1);
+                    cutOffPoint = Math.max(2, random.nextInt(Math.max(1, minLength - 1)) + 1);
                 }
                  Set<Integer>[] crossoverResult = performCrossover(P1, P2, cutOffPoint);
                  return crossoverResult;
@@ -161,6 +159,7 @@ cutOffPoint = Math.max(2, random.nextInt(Math.max(1, minLength - 1)) + 1);
       private static Integer getElement(Set<Integer> set, int index) {
         return set.stream().skip(index).findFirst().orElse(null);
     }
+      
       public static float coverFunction(ArrayList<Set<Integer>> sequence, Set<Integer> C1, Set<Integer> C2, int sizeOfOriginalDB) {
         ArrayList<Set<Integer>> dummy = new ArrayList<>();
         for (Set<Integer> originalSet : sequence) {
@@ -197,7 +196,7 @@ cutOffPoint = Math.max(2, random.nextInt(Math.max(1, minLength - 1)) + 1);
 
         return C;
     }
-          public static void getFinalCompression(ArrayList<Set<Integer>> sequence, ArrayList<Set<Integer>> nRandomPatternsGenerated, int sizeOfOriginalDB ){
+          public static void getFinalCompression(ArrayList<Set<Integer>> sequence, ArrayList<Set<Integer>> nRandomPatternsGenerated, int sizeOfOriginalDB, int CTL ){
                ArrayList<Set<Integer>> dummy = new ArrayList<>();
         for (Set<Integer> originalSet : sequence) {
             Set<Integer> copiedSet = new HashSet<>(originalSet);
@@ -211,7 +210,8 @@ for (Set<Integer> set : dummy) {
         }        
          int sizeAAfter = sizeInBits(dummy);
         float CR = sizeOfOriginalDB / (float) sizeAAfter;
-        float CP = sizeAAfter / (float) sizeOfOriginalDB * 100;
+        float CP = (sizeAAfter + CTL) / (float) sizeOfOriginalDB * 100;
+        CP =CP;
             System.out.println("Compression %: " + CP);
 
           }
@@ -279,5 +279,19 @@ for (Set<Integer> set : dummy) {
         }
         return seq;
 
+    }  
+        private static long CTLength(ArrayList<Set<Integer>> CT) {
+        int overheadPerSet = 32; // Assume some overhead per set (adjust as needed)
+        int sizePerInteger = 32; // Size per Integer in bits
+
+        int totalSize = 0;
+
+        for (Set<Integer> set : CT) {
+            int numIntegers = set.size();
+            int setSize = overheadPerSet + (numIntegers * sizePerInteger);
+            totalSize += setSize;
+        }
+
+        return totalSize;
     }
 }
